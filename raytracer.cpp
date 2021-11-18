@@ -2,6 +2,7 @@
 #include "parser.h"
 #include "ppm.h"
 
+#include <cmath>
 #include "vector_op.h"
 
 typedef unsigned char RGB[3];
@@ -32,12 +33,18 @@ int main(int argc, char* argv[])
         {   0,   0,   0 },  // Black
     };
 
-    int width = 640, height = 480;
+    int i;
+    int width, height;
+
+    /*
+    width = 640;
+    height = 480;
     int columnWidth = width / 8;
 
     unsigned char* image = new unsigned char [width * height * 3];
 
-    int i = 0;
+    i = 0;
+    
     for (int y = 0; y < height; ++y)
     {
         for (int x = 0; x < width; ++x)
@@ -50,35 +57,39 @@ int main(int argc, char* argv[])
     }
 
     write_ppm("test.ppm", image, width, height);
+    */
 
-//checking given structures
-//*************************
-
-    //std::cout<< "cameras" ;
-
-
-//*************************
-//checking given structures
     
     int cam_id; 
     int num_of_cameras;
 
     
+    parser::Vec3f temp_vec;
+    float temp;
 
     num_of_cameras = scene.cameras.size();
 
     for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
     {
         parser::Camera cam;
+        parser::Vec3f e;//origin
+        parser::Vec3f w,v,u;//coordinate system
+
         parser::Vec3f ray;
         parser::Vec3f q;// top corner coordinate
         parser::Vec3f s;// pixel coordinate
-        parser::Vec3f w,v,u;//coordinate system
+        parser::Vec3f d;// d in the eq r(t)= e+dt
+        
 
+        width = cam.image_width;
+        heigth = cam.image_height;
+
+        unsigned char* image = new unsigned char [width * height * 3];
 
         float pixel_width, pixel_height;
 
         cam = scene.cameras[cam_id];
+        e = cam.position;
         w = vectorScalerMult(-1.0, cam.gaze);
         v = cam.up;
         u = crossProduct(v, w);
@@ -89,7 +100,6 @@ int main(int argc, char* argv[])
         pixel_height = (cam.near_plane.w - cam.near_plane.z) / cam.image_height;
 
         
-        parser::Vec3f temp_vec;
         temp_vec = vectorScalerMult(cam.near_plane.x, u);//l.u
 
         q = vectorSum(cam.position, temp_vec);//e + l.u
@@ -116,31 +126,107 @@ int main(int argc, char* argv[])
 
                 s = vectorSum(s, temp_vec);
                 //s = q + s_u.u + s_v.v
+                d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
 
+                float t_min;//closest objects parameter
+                float t_1, t_2;//different solutions of the equation
+
+                //calculate spheres' closest
+
+                int numOfSpheres = scene.spheres.size();
+                int intersects = 0;//whether it intersects or not
+                int closest_sphere;//id
+
+                for(i = 0; i < numOfSpheres; i++)
+                {
+                    parser::Vec3f c;
+                    float radius;
+
+                    c = scene.vertex_data[scene.spheres[i].center_vertex_id];
+                    radius = scene.spheres[i].radius;
+
+                    float discriminant;
+                    parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
+                    float d_sqr;
+
+                    e_c = vectorSum(e, vectorScalerMult(-1.0, c);
+                    d_sqr = dotProduct(d, d);
+
+
+                    temp = dotProduct(d, e_c);
+                    temp *= temp;//(d.(e-c))^2
+
+                    discriminant = temp;
+                    discriminant -= d_sqr * (dotProduct(e_c, e_c) - radius*radius);
+                    //d^2(e-c)^2-r^2
+
+                    if(discriminant >= 0)//meaning they intersect
+                    {
+                        t_1 = -dotProduct(d, e_c);
+                        t_2 = t_1;
+
+                        t_1 += sqrt(discriminant);//-b + sqrt delta
+                        t_1 /= d_sqr;
+                        t_2 -= sqrt(discriminant);//-b - sqrt delta
+                        t_2 /= d_sqr;
+
+                        if(!intersects)
+                        {
+                            intersects = 1;
+                            //assign the smallest
+                            if(t_1 < t_2)
+                            {
+                                t_min = t_1;
+                            }
+                            else
+                            {
+                                t_min = t_2;
+                            }
+                            closest_sphere = i;
+                        }
+                        else
+                        {
+                            if(t_1 < t_min)
+                            {
+                                t_min = t_1;
+                                closest_sphere = i;
+                            }
+                            if(t_2 < t_min);
+                            {
+                                t_min = t_2;
+                                closest_sphere = i;
+                            }
+
+                        }
+                        
+                    }
+
+
+
+                }
+
+                //find the colour of that material
+
+                if(!intersects)// does not intersect get backround colour
+                {
+                    
+                }
+
+
+                //write that colour to the array
 
 
                 
 
 
-                //find ray equation
-                //ray = cam.position + ()
-
 
 
             }
         }
-
-        parser::Vec3f e;//origin of ray
-        
-
-        //compute near plane's pixels
-        //send ray
-
-            //for all objects check if they intersect
-            //if so then find the colour
+        //print to ppm
 
 
-        //compute image
+
 
          
         //write to file
