@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
     for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
     {
 
+        //compute near plane's pixels
         //send ray
 
             //for all objects check if they intersect
