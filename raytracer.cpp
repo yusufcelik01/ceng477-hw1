@@ -67,7 +67,11 @@ int main(int argc, char* argv[])
 
     for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
     {
-        float w, v, u;
+
+        //send ray
+
+            //for all objects check if they intersect
+            //if so then find the colour
 
 
         //compute image
