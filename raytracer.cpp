@@ -2,6 +2,8 @@
 #include "parser.h"
 #include "ppm.h"
 
+#include "vector_op.h"
+
 typedef unsigned char RGB[3];
 
 int main(int argc, char* argv[])
@@ -67,6 +69,69 @@ int main(int argc, char* argv[])
 
     for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
     {
+        parser::Camera cam;
+        parser::Vec3f ray;
+        parser::Vec3f q;// top corner coordinate
+        parser::Vec3f s;// pixel coordinate
+        parser::Vec3f w,v,u;//coordinate system
+
+
+        float pixel_width, pixel_height;
+
+        cam = scene.cameras[cam_id];
+        w = vectorScalerMult(-1.0, cam.gaze);
+        v = cam.up;
+        u = crossProduct(v, w);
+
+
+
+        pixel_width = (cam.near_plane.y - cam.near_plane.x) / cam.image_width;
+        pixel_height = (cam.near_plane.w - cam.near_plane.z) / cam.image_height;
+
+        
+        parser::Vec3f temp_vec;
+        temp_vec = vectorScalerMult(cam.near_plane.x, u);//l.u
+
+        q = vectorSum(cam.position, temp_vec);//e + l.u
+        
+        temp_vec = vectorScalerMult(cam.near_plane.w, v);//t.v
+        q = vectorSum(q, temp_vec); // += t.v
+
+        temp_vec = vectorScalerMult(cam.near_distance, cam.gaze);
+        q = vectorSum(q, temp_vec);
+        //q has the position of top left corner
+
+
+
+        for(int y=0; y < cam.image_height; y++)
+        {
+            for(int x=0; x < cam.image_width; x++)
+            {
+                //first compute pixel coordinates;
+                temp_vec = vectorScalerMult((x+0.5)*pixel_width, u);
+
+                s = vectorSum(q, temp_vec);//s = q + s_u.u
+
+                temp_vec = vectorScalerMult( (y+0.5)*pixel_height, v);
+
+                s = vectorSum(s, temp_vec);
+                //s = q + s_u.u + s_v.v
+
+
+
+                
+
+
+                //find ray equation
+                //ray = cam.position + ()
+
+
+
+            }
+        }
+
+        parser::Vec3f e;//origin of ray
+        
 
         //compute near plane's pixels
         //send ray
