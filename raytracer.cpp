@@ -13,6 +13,8 @@ int main(int argc, char* argv[])
     parser::Scene scene;
 
     scene.loadFromXml(argv[1]);
+    std::cout << "XML LOADED" << std::endl;
+
 
     // The code below creates a test pattern and writes
     // it to a PPM file to demonstrate the usage of the
@@ -44,6 +46,7 @@ int main(int argc, char* argv[])
     unsigned char* image = new unsigned char [width * height * 3];
 
     i = 0;
+        float w, v, u;
     
     for (int y = 0; y < height; ++y)
     {
