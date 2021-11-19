@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
     parser::Scene scene;
 
     scene.loadFromXml(argv[1]);
-    std::cout << "XML LOADED" << std::endl;
 
 
     // The code below creates a test pattern and writes
@@ -82,18 +81,20 @@ int main(int argc, char* argv[])
         parser::Vec3f q;// top corner coordinate
         parser::Vec3f s;// pixel coordinate
         parser::Vec3f d;// d in the eq r(t)= e+dt
+        float pixel_width, pixel_height;
         
+
+        cam = scene.cameras[cam_id];
 
         width = cam.image_width;
         height = cam.image_height;
 
-    std::cout << "WHAT" << std::endl;
+        std::cout << width << " ;[]sa "<< height << std::endl;
+
         unsigned char* image = new unsigned char [width * height * 3];
 
     std::cout << "WHAT" << std::endl;
-        float pixel_width, pixel_height;
 
-        cam = scene.cameras[cam_id];
         e = cam.position;
         w = vectorScalerMult(-1.0, cam.gaze);
         v = cam.up;
