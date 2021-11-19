@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
         {   0,   0,   0 },  // Black
     };
 
-    int i;
+    int i,j,foo,bar;
     int width, height;
 
     /*
@@ -82,10 +82,12 @@ int main(int argc, char* argv[])
         
 
         width = cam.image_width;
-        heigth = cam.image_height;
+        height = cam.image_height;
 
+    std::cout << "WHAT" << std::endl;
         unsigned char* image = new unsigned char [width * height * 3];
 
+    std::cout << "WHAT" << std::endl;
         float pixel_width, pixel_height;
 
         cam = scene.cameras[cam_id];
@@ -112,7 +114,7 @@ int main(int argc, char* argv[])
         //q has the position of top left corner
 
 
-
+        i = 0; //pixels' color value
         for(int y=0; y < cam.image_height; y++)
         {
             for(int x=0; x < cam.image_width; x++)
@@ -137,19 +139,19 @@ int main(int argc, char* argv[])
                 int intersects = 0;//whether it intersects or not
                 int closest_sphere;//id
 
-                for(i = 0; i < numOfSpheres; i++)
+                for(foo = 0; foo < numOfSpheres; foo++)
                 {
                     parser::Vec3f c;
                     float radius;
 
-                    c = scene.vertex_data[scene.spheres[i].center_vertex_id];
-                    radius = scene.spheres[i].radius;
+                    c = scene.vertex_data[scene.spheres[foo].center_vertex_id];
+                    radius = scene.spheres[foo].radius;
 
                     float discriminant;
                     parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
                     float d_sqr;
 
-                    e_c = vectorSum(e, vectorScalerMult(-1.0, c);
+                    e_c = vectorSum(e, vectorScalerMult(-1.0, c));
                     d_sqr = dotProduct(d, d);
 
 
@@ -182,19 +184,19 @@ int main(int argc, char* argv[])
                             {
                                 t_min = t_2;
                             }
-                            closest_sphere = i;
+                            closest_sphere = foo;
                         }
                         else
                         {
                             if(t_1 < t_min)
                             {
                                 t_min = t_1;
-                                closest_sphere = i;
+                                closest_sphere = foo;
                             }
                             if(t_2 < t_min);
                             {
                                 t_min = t_2;
-                                closest_sphere = i;
+                                closest_sphere = foo;
                             }
 
                         }
@@ -209,7 +211,17 @@ int main(int argc, char* argv[])
 
                 if(!intersects)// does not intersect get backround colour
                 {
-                    
+                    parser::Vec3i bg;//backgroung
+                    bg = scene.background_color;
+                    image[i++] = bg.x;
+                    image[i++] = bg.y;
+                    image[i++] = bg.z;
+                }
+                else// if there is a sphere just write green
+                {
+                    image[i++] = 0;
+                    image[i++] = 255;
+                    image[i++] = 0;
                 }
 
 
@@ -237,6 +249,6 @@ int main(int argc, char* argv[])
 
     
 
-    write_ppm("test.ppm", image, width, height);
+    //write_ppm("test.ppm", image, width, height);
 
 }
