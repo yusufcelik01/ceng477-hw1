@@ -7,6 +7,11 @@
 
 typedef unsigned char RGB[3];
 
+enum IntersecType {none, sphere, triangle, mash};
+
+int RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersecType &i_type);
+parser::Intersection intersectRaySphere(const parser::Scene &scene, parser::Ray &eye_ray, int sphere_id);
+
 int main(int argc, char* argv[])
 {
     // Sample usage for reading an XML scene file
@@ -14,54 +19,8 @@ int main(int argc, char* argv[])
 
     scene.loadFromXml(argv[1]);
 
-
-    // The code below creates a test pattern and writes
-    // it to a PPM file to demonstrate the usage of the
-    // ppm_write function.
-    //
-    // Normally, you would be running your ray tracing
-    // code here to produce the desired image.
-
-    const RGB BAR_COLOR[8] =
-    {
-        { 255, 255, 255 },  // 100% White
-        { 255, 255,   0 },  // Yellow
-        {   0, 255, 255 },  // Cyan
-        {   0, 255,   0 },  // Green
-        { 255,   0, 255 },  // Magenta
-        { 255,   0,   0 },  // Red
-        {   0,   0, 255 },  // Blue
-        {   0,   0,   0 },  // Black
-    };
-
-    int i,j,foo,bar;
+    int i,j,k,bar;
     int width, height;
-
-    /*
-    width = 640;
-    height = 480;
-    int columnWidth = width / 8;
-
-    unsigned char* image = new unsigned char [width * height * 3];
-
-    i = 0;
-        float w, v, u;
-    
-    for (int y = 0; y < height; ++y)
-    {
-        for (int x = 0; x < width; ++x)
-        {
-            int colIdx = x / columnWidth;
-            image[i++] = BAR_COLOR[colIdx][0];
-            image[i++] = BAR_COLOR[colIdx][1];
-            image[i++] = BAR_COLOR[colIdx][2];
-        }
-    }
-
-    write_ppm("test.ppm", image, width, height);
-    */
-
-    
     int cam_id; 
     int num_of_cameras;
 
@@ -133,20 +92,19 @@ int main(int argc, char* argv[])
         */
 
         i = 0; //pixels' color value
-        for(int y=0; y < cam.image_height; y++)
-        {
-            for(int x=0; x < cam.image_width; x++)
-            {
+        float p_height = pixel_height*0.5;
+        float p_width = pixel_width*0.5;
+        for(int y=0; y < cam.image_height; y++){
+            for(int x=0; x < cam.image_width; x++){
                 //first compute pixel coordinates;
-                temp_vec = vectorScalerMult((x+0.5)*pixel_width, u);
+                temp_vec = vectorScalerMult(x*pixel_width+p_width, u);
 
                 s = vectorSum(q, temp_vec);//s = q + s_u.u
 
-                temp_vec = vectorScalerMult( -1.0 * (y+0.5)*pixel_height, v);// - s_v . v
+                temp_vec = vectorScalerMult( -1.0 * (y*pixel_height + p_height), v);// - s_v . v
 
                 s = vectorSum(s, temp_vec);
                 //s = q + s_u.u - s_v.v
-
 
                 d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
 
@@ -154,104 +112,117 @@ int main(int argc, char* argv[])
                 ray.e = e;
                 ray.d = d;
 
-                float t_min;//closest objects parameter
                 //float intersect.t1, intersect.t2;//different solutions of the equation
 
                 //calculate spheres' closest
 
-                int numOfSpheres = scene.spheres.size();
-                int intersects = 0;//whether it intersects or not
-                int closest_sphere;//id
-
-                for(foo = 0; foo < numOfSpheres; foo++)
-                {
-                    parser::Intersection intersect = scene.intersectRaySphere(ray, foo);
-
-
-                    if(intersect.discriminant >= 0)//meaning they intersect
-                    {
-
-                        if(!intersects)
-                        {
-                            intersects = 1;
-                            //assign the smallest
-                            if(intersect.t1 < intersect.t2)
-                            {
-                                t_min = intersect.t1;
-                            }
-                            else
-                            {
-                                t_min = intersect.t2;
-                            }
-                            closest_sphere = foo;
-                        }
-                        else
-                        {
-                            if(intersect.t1 < t_min)
-                            {
-                                t_min = intersect.t1;
-                                closest_sphere = foo;
-                            }
-                            if(intersect.t2 < t_min);
-                            {
-                                t_min = intersect.t2;
-                                closest_sphere = foo;
-                            }
-
-                        }
-                        
-                    }
-
-
-
-                }
+                IntersecType i_type = none;//whether it intersects or not
+                int closest_obj_id = RayIntersecObj(scene,ray,i_type);
 
                 //find the colour of that material
 
-                if(!intersects)// does not intersect get backround colour
-                {
+                if(!i_type){
+                    // does not intersect get backround colour
                     parser::Vec3i bg;//backgroung
                     bg = scene.background_color;
                     image[i++] = bg.x;
                     image[i++] = bg.y;
                     image[i++] = bg.z;
                 }
-                else// if there is a sphere just write green
-                {
-
-                    parser::Material material = scene.materials[scene.spheres[closest_sphere].material_id - 1];
-
-
+                else{
+                    // if there is a sphere just write green
+                    parser::Material material = scene.materials[scene.spheres[closest_obj_id].material_id - 1];
                     image[i++] = 255 * material.diffuse.x;//R
                     image[i++] = 255 * material.diffuse.y;//G
                     image[i++] = 255 * material.diffuse.z;//B
                 }
-
-
                 //write that colour to the array
-
-
-                
-
-
-
 
             }
         }
         //print to ppm
 
-
-
-
-         
         //write to file
         write_ppm(scene.cameras[cam_id].image_name.c_str(), image, width, height);
 
     }
-
-
-    
-
     //write_ppm("test.ppm", image, width, height);
+}
 
+int RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersecType &i_type){
+    float t_min;//closest objects parameter
+    int closest_obj_id;
+    int numOfSpheres = scene.spheres.size();
+    for(int k = 0; k < numOfSpheres; k++){
+        parser::Intersection intersect = intersectRaySphere(scene,ray, k);
+
+        if(intersect.discriminant >= 0){
+            //meaning they intersect
+            if(i_type==none){
+                i_type = sphere;
+                //assign the smallest
+                if(intersect.t1 < intersect.t2)
+                    t_min = intersect.t1;
+                else
+                    t_min = intersect.t2;
+                closest_obj_id = k;
+            }
+            else{
+                if(intersect.t1 < t_min){
+                    t_min = intersect.t1;
+                    closest_obj_id = k;
+                }
+                if(intersect.t2 < t_min);{
+                    t_min = intersect.t2;
+                    closest_obj_id = k;
+                }
+            }
+        }
+    }
+    return closest_obj_id;
+}
+
+parser::Intersection intersectRaySphere(const parser::Scene &scene, parser::Ray &eye_ray, int sphere_id){
+    parser::Intersection intersect;
+
+    parser::Vec3f c;
+    float radius;
+    float temp;
+
+    c = scene.vertex_data[scene.spheres[sphere_id].center_vertex_id -1 ];
+    radius = scene.spheres[sphere_id].radius;
+
+
+    parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
+    float d_sqr;
+
+    e_c = vectorSum(eye_ray.e, vectorScalerMult(-1.0, c));
+    d_sqr = dotProduct(eye_ray.d, eye_ray.d);
+
+
+    temp = dotProduct(eye_ray.d, e_c);
+    temp *= temp;//(d.(e-c))^2
+
+    intersect.discriminant = temp;
+    intersect.discriminant -= d_sqr * (dotProduct(e_c, e_c) - radius*radius);
+
+    if(intersect.discriminant >= 0)
+    {
+        intersect.t1 = -dotProduct(eye_ray.d, e_c);
+        intersect.t2 = intersect.t1;
+
+        intersect.t1 += sqrt(intersect.discriminant);//-b + sqrt delta
+        intersect.t1 /= d_sqr;
+        intersect.t2 -= sqrt(intersect.discriminant);//-b - sqrt delta
+        intersect.t2 /= d_sqr;
+
+        return intersect;
+    }
+    else
+    {
+        intersect.t1 = -1;
+        intersect.t2 = -1;
+
+        return intersect;
+    }
 }

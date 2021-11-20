@@ -107,7 +107,6 @@ namespace parser
 
         //Functions
         void loadFromXml(const std::string &filepath);
-        Intersection intersectRaySphere(Ray eye_ray, int sphere_id);
     };
 }
 
