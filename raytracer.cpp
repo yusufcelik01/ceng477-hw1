@@ -3,7 +3,7 @@
 #include "ppm.h"
 
 #include <cmath>
-#include "vector_op.h"
+#include "raytracer_math.h"
 
 typedef unsigned char RGB[3];
 
@@ -150,8 +150,12 @@ int main(int argc, char* argv[])
 
                 d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
 
+                parser::Ray ray;
+                ray.e = e;
+                ray.d = d;
+
                 float t_min;//closest objects parameter
-                float t_1, t_2;//different solutions of the equation
+                //float intersect.t1, intersect.t2;//different solutions of the equation
 
                 //calculate spheres' closest
 
@@ -161,63 +165,36 @@ int main(int argc, char* argv[])
 
                 for(foo = 0; foo < numOfSpheres; foo++)
                 {
-                    parser::Vec3f c;
-                    float radius;
-
-                    c = scene.vertex_data[scene.spheres[foo].center_vertex_id -1 ];
-                    radius = scene.spheres[foo].radius;
-
-                    //std::cout << "center " << c.x << "," << c.y << "," << c.z  << " radius: " << radius << std::endl;
-
-                    float discriminant;
-                    parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
-                    float d_sqr;
-
-                    e_c = vectorSum(e, vectorScalerMult(-1.0, c));
-                    d_sqr = dotProduct(d, d);
+                    parser::Intersection intersect = scene.intersectRaySphere(ray, foo);
 
 
-                    temp = dotProduct(d, e_c);
-                    temp *= temp;//(d.(e-c))^2
-
-                    discriminant = temp;
-                    discriminant -= d_sqr * (dotProduct(e_c, e_c) - radius*radius);
-                    //d^2(e-c)^2-r^2
-
-                    if(discriminant >= 0)//meaning they intersect
+                    if(intersect.discriminant >= 0)//meaning they intersect
                     {
-                        t_1 = -dotProduct(d, e_c);
-                        t_2 = t_1;
-
-                        t_1 += sqrt(discriminant);//-b + sqrt delta
-                        t_1 /= d_sqr;
-                        t_2 -= sqrt(discriminant);//-b - sqrt delta
-                        t_2 /= d_sqr;
 
                         if(!intersects)
                         {
                             intersects = 1;
                             //assign the smallest
-                            if(t_1 < t_2)
+                            if(intersect.t1 < intersect.t2)
                             {
-                                t_min = t_1;
+                                t_min = intersect.t1;
                             }
                             else
                             {
-                                t_min = t_2;
+                                t_min = intersect.t2;
                             }
                             closest_sphere = foo;
                         }
                         else
                         {
-                            if(t_1 < t_min)
+                            if(intersect.t1 < t_min)
                             {
-                                t_min = t_1;
+                                t_min = intersect.t1;
                                 closest_sphere = foo;
                             }
-                            if(t_2 < t_min);
+                            if(intersect.t2 < t_min);
                             {
-                                t_min = t_2;
+                                t_min = intersect.t2;
                                 closest_sphere = foo;
                             }
 

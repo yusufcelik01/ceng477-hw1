@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+
 namespace parser
 {
     //Notice that all the structures are as simple as possible
@@ -76,6 +77,19 @@ namespace parser
         float radius;
     };
 
+    struct Ray
+    {
+        Vec3f e;
+        Vec3f d;
+    };
+
+    struct Intersection
+    {
+        float discriminant;
+        float t1;
+        float t2;
+    };
+
     struct Scene
     {
         //Data
@@ -93,6 +107,7 @@ namespace parser
 
         //Functions
         void loadFromXml(const std::string &filepath);
+        Intersection intersectRaySphere(Ray eye_ray, int sphere_id);
     };
 }
 
