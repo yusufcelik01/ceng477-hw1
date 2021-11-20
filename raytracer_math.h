@@ -17,5 +17,6 @@ parser::Vec3f crossProduct(parser::Vec3f a, parser::Vec3f b);
 
 parser::Vec3i crossProduct(parser::Vec3i a, parser::Vec3i b);
 
+float getDeterminant(float arr[3][]);
 
 #endif

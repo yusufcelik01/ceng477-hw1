@@ -81,6 +81,23 @@ parser::Vec3i crossProduct(parser::Vec3i a, parser::Vec3i b)
     return result;
 }
 
+float getDeterminant(float arr[3][])//3x3 matrix
+{
+    float det = 0;
+    det += arr[0][0] * arr[1][1] * arr[2][2];
+    det += arr[0][1] * arr[1][2] * arr[2][0];
+    det += arr[0][2] * arr[1][0] * arr[2][1];
+
+    det -= arr[0][0] * arr[][] * arr[][];
+    det -= arr[0][0] * arr[][] * arr[][];
+    det -= arr[0][0] * arr[][] * arr[][];
+    
+
+}
+
+
+///////////////////////////////////////
+
 parser::Intersection parser::Scene::intersectRaySphere(Ray eye_ray, int sphere_id)
 {
     Intersection intersect;
