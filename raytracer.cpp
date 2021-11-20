@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
                     c = scene.vertex_data[scene.spheres[foo].center_vertex_id -1 ];
                     radius = scene.spheres[foo].radius;
 
-                    std::cout << "center " << c.x << "," << c.y << "," << c.z  << " radius: " << radius << std::endl;
+                    //std::cout << "center " << c.x << "," << c.y << "," << c.z  << " radius: " << radius << std::endl;
 
                     float discriminant;
                     parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
@@ -241,9 +241,13 @@ int main(int argc, char* argv[])
                 }
                 else// if there is a sphere just write green
                 {
-                    image[i++] = 0;
-                    image[i++] = 255;
-                    image[i++] = 0;
+
+                    parser::Material material = scene.materials[scene.spheres[closest_sphere].material_id - 1];
+
+
+                    image[i++] = 255 * material.diffuse.x;//R
+                    image[i++] = 255 * material.diffuse.y;//G
+                    image[i++] = 255 * material.diffuse.z;//B
                 }
 
 
