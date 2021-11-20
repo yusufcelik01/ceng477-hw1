@@ -89,19 +89,27 @@ int main(int argc, char* argv[])
         width = cam.image_width;
         height = cam.image_height;
 
-        std::cout << width << " ;[]sa "<< height << std::endl;
 
         unsigned char* image = new unsigned char [width * height * 3];
 
-    std::cout << "WHAT" << std::endl;
 
         e = cam.position;
         w = vectorScalerMult(-1.0, cam.gaze);
         v = cam.up;
         u = crossProduct(v, w);
 
+        /*
+        std::cout << "e = " << e.x << "," << e.y << "," << e.z << std::endl
+                  << "w = " << w.x << "," << w.y << "," << w.z << std::endl
+                  << "v = " << v.x << "," << v.y << "," << v.z << std::endl
+                  << "u = " << u.x << "," << u.y << "," << u.z << std::endl;
 
+        std::cout << "\nNear plane things: " << cam.near_plane.x << " "
+                                            << cam.near_plane.y << " "
+                                            << cam.near_plane.z << " "
+                                            << cam.near_plane.w << std::endl;
 
+        */
         pixel_width = (cam.near_plane.y - cam.near_plane.x) / cam.image_width;
         pixel_height = (cam.near_plane.w - cam.near_plane.z) / cam.image_height;
 
@@ -117,6 +125,12 @@ int main(int argc, char* argv[])
         q = vectorSum(q, temp_vec);
         //q has the position of top left corner
 
+        /*
+        std::cout << "pixel width " << pixel_height << std::endl;
+        std::cout << "pixel height " << pixel_height << std::endl;
+
+        std::cout << "q = " << q.x << "," << q.y << "," << q.z << std::endl;
+        */
 
         i = 0; //pixels' color value
         for(int y=0; y < cam.image_height; y++)
@@ -128,10 +142,12 @@ int main(int argc, char* argv[])
 
                 s = vectorSum(q, temp_vec);//s = q + s_u.u
 
-                temp_vec = vectorScalerMult( (y+0.5)*pixel_height, v);
+                temp_vec = vectorScalerMult( -1.0 * (y+0.5)*pixel_height, v);// - s_v . v
 
                 s = vectorSum(s, temp_vec);
-                //s = q + s_u.u + s_v.v
+                //s = q + s_u.u - s_v.v
+
+
                 d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
 
                 float t_min;//closest objects parameter
@@ -148,8 +164,10 @@ int main(int argc, char* argv[])
                     parser::Vec3f c;
                     float radius;
 
-                    c = scene.vertex_data[scene.spheres[foo].center_vertex_id];
+                    c = scene.vertex_data[scene.spheres[foo].center_vertex_id -1 ];
                     radius = scene.spheres[foo].radius;
+
+                    std::cout << "center " << c.x << "," << c.y << "," << c.z  << " radius: " << radius << std::endl;
 
                     float discriminant;
                     parser::Vec3f e_c; //e-c and d^2 is freq used so assign it to a variable
