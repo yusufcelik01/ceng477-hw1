@@ -294,6 +294,6 @@ parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray,
         return res;
     res.x = (j*ei_hf + k*gf_di + l*dh_eg)/M; // beta
     res.y = (i*ak_jb + h*jc_al + g*bl_kc)/M; // gama
-    res.z = (f*ak_jb + e*jc_al + d*bl_kc)/M; // t
+    res.z = -(f*ak_jb + e*jc_al + d*bl_kc)/M; // t
     return res;
 }
