@@ -115,21 +115,21 @@ int main(int argc, char* argv[])
                     break;
                 case sphere:
                     material = scene.materials[scene.spheres[closest_obj_id].material_id - 1];
-                    image[i++] = 255 * material.diffuse.x;//R
-                    image[i++] = 255 * material.diffuse.y;//G
-                    image[i++] = 255 * material.diffuse.z;//B
+                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
+                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
+                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
                     break;
                 case triangle:
                     material = scene.materials[scene.triangles[closest_obj_id].material_id - 1];
-                    image[i++] = 255 * material.diffuse.x;//R
-                    image[i++] = 255 * material.diffuse.y;//G
-                    image[i++] = 255 * material.diffuse.z;//B
+                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
+                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
+                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
                     break;
                 case mesh:
                     material = scene.materials[scene.meshes[closest_obj_id].material_id - 1];
-                    image[i++] = 255 * material.diffuse.x;//R
-                    image[i++] = 255 * material.diffuse.y;//G
-                    image[i++] = 255 * material.diffuse.z;//B
+                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
+                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
+                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
                     break;
                 // default:
                 //     break;
