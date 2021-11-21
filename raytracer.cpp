@@ -163,6 +163,7 @@ int main(int argc, char* argv[])
 
                     for(j = 0; j<numberOfLightSources; j++)
                     {
+
                         parser::PointLight point_light = scene.point_lights[j];
                         float cosine_theta = 0;
 
@@ -174,13 +175,17 @@ int main(int argc, char* argv[])
                         cosine_theta = dotProduct(light_ray, normal_vector);
                         cosine_theta = MAX(0, cosine_theta); 
 
-                        L = clampColor(vectorScalerMult(cosine_theta, elementViseMultiply(material.diffuse, point_light.intensity)));
+                        L = vectorSum(L, clampColor(vectorScalerMult(cosine_theta, elementViseMultiply(material.diffuse, point_light.intensity))));
 
                     }
+
                     L = clampColor(vectorSum(L, elementViseMultiply(scene.ambient_light, material.ambient)));//
                     image[i++] = L.x  ; 
                     image[i++] = L.y  ; 
                     image[i++] = L.z  ; 
+                    //image[i++] = scene.ambient_light.x * material.ambient.x;//R
+                    //image[i++] = scene.ambient_light.y * material.ambient.y;//G
+                    //image[i++] = scene.ambient_light.z * material.ambient.z;//B
 
 
 
@@ -220,22 +225,25 @@ void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData
     int numOfTriangles = scene.triangles.size();
     int numOfMeshes = scene.meshes.size();
 
-    //closest_obj_data.t = __FLT_MAX__;//closest objects intersection parameter
-    //closest_obj_data.obj_id = -1;
-    //closest_obj_data.obj_type = none;
+    closest_obj_data.t = __FLT_MAX__;//closest objects intersection parameter
+    closest_obj_data.obj_id = -1;
+    closest_obj_data.obj_type = none;
 
 
     for(int i = 0; i < numOfSpheres; i++){
         parser::Intersection intersect = intersectRaySphere(scene,ray, i);
 
-        if(intersect.discriminant >= 0){
+        if(intersect.discriminant >= 0 ){
             //meaning they intersect
-            if(intersect.t1 < closest_obj_data.t){
+            if(intersect.t1 < intersect.t2 && intersect.t1 > 0 && intersect.t1 < closest_obj_data.t)
+            {
                 closest_obj_data.t = intersect.t1;
                 closest_obj_data.obj_id = i;
                 closest_obj_data.obj_type = sphere;
+                    
             }
-            if(intersect.t2 < closest_obj_data.t);{
+            else if(intersect.t2 > 0 && intersect.t2 < closest_obj_data.t)
+            {
                 closest_obj_data.t = intersect.t2;
                 closest_obj_data.obj_id = i;
                 closest_obj_data.obj_type = sphere;
@@ -244,7 +252,7 @@ void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData
     }
     for(int i = 0; i<numOfTriangles;i++){
         parser::Vec3f b_g_t = intersectRayFace(scene,ray,scene.triangles[i].indices);
-        if(b_g_t.z < closest_obj_data.t && b_g_t.x >= 0 && b_g_t.y >= 0){
+        if(b_g_t.z > 0 && b_g_t.z < closest_obj_data.t && b_g_t.x >= 0 && b_g_t.y >= 0){
             if(b_g_t.y <= 1 && b_g_t.x <= (1 - b_g_t.y)){
                 closest_obj_data.t = b_g_t.z;
                 closest_obj_data.obj_id = i;
@@ -257,7 +265,7 @@ void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData
         int numOfFaces = currmesh.faces.size();
         for(int i = 0; i<numOfFaces;i++){
             parser::Vec3f b_g_t = intersectRayFace(scene,ray,currmesh.faces[i]);
-            if(b_g_t.z < closest_obj_data.t && b_g_t.x >= 0 && b_g_t.y >= 0){
+            if(b_g_t.z > 0 && b_g_t.z < closest_obj_data.t && b_g_t.x >= 0 && b_g_t.y >= 0){
                 if(b_g_t.y <= 1 && b_g_t.x <= (1 - b_g_t.y)){
                     closest_obj_data.t = b_g_t.z;
                     closest_obj_data.obj_id = j;
