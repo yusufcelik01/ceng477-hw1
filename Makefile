@@ -1,4 +1,4 @@
-CFLAGS = -O3 -g -funroll-all-loops
+CFLAGS = -O3  # -funroll-loops
 CXXFLAGS = -std=c++17
 
 all:
