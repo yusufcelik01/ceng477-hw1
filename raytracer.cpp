@@ -91,10 +91,15 @@ int main(int argc, char* argv[])
         for(int y=0; y < cam.image_height; y++){
             for(int x=0; x < cam.image_width; x++){
                 //first compute pixel coordinates;
-                parser::Ray ray;
+                parser::Ray r;
                 //IntersecType i_type = none;//whether it intersects or not
                 parser::Material material;
+
                 IntersectionData closest_obj_data;
+                parser::Vec3f reflection_point;//this is the point our ray r hits the object
+                parser::Vec3f normal_vector;//normal vector of our surface
+                parser::Vec3f light_ray;//light ray
+
 
                 closest_obj_data.obj_type = none;
                 closest_obj_data.t = __FLT_MAX__;
@@ -112,16 +117,18 @@ int main(int argc, char* argv[])
 
                 d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
 
-                ray.e = e;
-                ray.d = d;
+                r.e = e;
+                r.d = d;
 
                 //float intersect.t1, intersect.t2;//different solutions of the equation
 
                 //calculate spheres' closest
 
-                RayIntersecObj(scene,ray,closest_obj_data);
+                RayIntersecObj(scene,r,closest_obj_data);
 
                 //find the colour of that material
+                int numberOfLightSources = scene.point_lights.size();
+                parser::Vec3f center;
                 switch (closest_obj_data.obj_type){
                 case none:
                     parser::Vec3i bg;//backgroung
@@ -132,15 +139,49 @@ int main(int argc, char* argv[])
                     break;
                 case sphere:
                     material = scene.materials[scene.spheres[closest_obj_data.obj_id].material_id - 1];
-                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
-                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
-                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
 
                     //TODO
+                    //calculating Lambartian shading (i.e diffuse component)
                     //find the intersection point  namely S
                     // r(t) = S
                     //   n  = (S-C)/|S-C|
                     //s-c
+
+                    center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
+
+                    reflection_point = vectorSum(r.e, vectorScalerMult(closest_obj_data.t, r.d));//e + dt (S in your notes)
+                    normal_vector = vectorSum(reflection_point, vectorScalerMult(-1, center));// S-E (see your notes)
+
+                    normal_vector = normalize(normal_vector);//n (unit normal of the sphere at that point)
+
+                    //now compute the light sources' normals and diffuse component for each source
+                    
+                    parser::Vec3f L;
+                    L.x=0;
+                    L.y=0;
+                    L.z=0;
+
+                    for(j = 0; j<numberOfLightSources; j++)
+                    {
+                        parser::PointLight point_light = scene.point_lights[j];
+                        float cosine_theta = 0;
+
+                        
+                        light_ray = vectorSum(point_light.position, vectorScalerMult(-1,reflection_point));
+
+                        light_ray = normalize(light_ray);// now light ray is normalized
+
+                        cosine_theta = dotProduct(light_ray, normal_vector);
+                        cosine_theta = MAX(0, cosine_theta); 
+
+                        L = clampColor(vectorScalerMult(cosine_theta, elementViseMultiply(material.diffuse, point_light.intensity)));
+
+                    }
+                    L = clampColor(vectorSum(L, elementViseMultiply(scene.ambient_light, material.ambient)));//
+                    image[i++] = L.x  ; 
+                    image[i++] = L.y  ; 
+                    image[i++] = L.z  ; 
+
 
 
                     break;

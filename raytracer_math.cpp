@@ -81,19 +81,40 @@ parser::Vec3i crossProduct(parser::Vec3i a, parser::Vec3i b)
     return result;
 }
 
-// float getDeterminant(float arr[3][])//3x3 matrix
-// {
-//     float det = 0;
-//     det += arr[0][0] * arr[1][1] * arr[2][2];
-//     det += arr[0][1] * arr[1][2] * arr[2][0];
-//     det += arr[0][2] * arr[1][0] * arr[2][1];
 
-//     det -= arr[0][0] * arr[][] * arr[][];
-//     det -= arr[0][0] * arr[][] * arr[][];
-//     det -= arr[0][0] * arr[][] * arr[][];
+
+parser::Vec3f normalize(const parser::Vec3f& v)// normalizes a vector
+{
+    float length = vectorLength(v);
+    parser::Vec3f n;
+
+    n.x =  v.x/length;
+    n.y =  v.y/length;
+    n.z =  v.z/length;
+
+    return n;
+}
+
+parser::Vec3f elementViseMultiply(const parser::Vec3f& a, const parser::Vec3f& b)
+{
+    parser::Vec3f res;
+
+    res.x = a.x * b.x;
+    res.y = a.y * b.y;
+    res.z = a.z * b.z;
     
+    return res;
+}
 
-// }
+parser::Vec3f clampColor(const parser::Vec3f& color)
+{
+    parser::Vec3f res;
 
-
-///////////////////////////////////////
+    res.x = (color.x <0)? 0:
+       (color.x > 255) ?255 : color.x ;
+    res.y = (color.y <0)? 0:
+       (color.y > 255) ?255 : color.y ;
+    res.z = (color.z <0)? 0:
+       (color.z > 255) ?255 : color.z ;
+    return res;
+}
