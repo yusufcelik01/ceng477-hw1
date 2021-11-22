@@ -3,7 +3,7 @@
 
 #include "parser.h"
 
-#define vectorLength(v) sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
+#define VECTOR_LENGTH(v) sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
 #define clampLigth()
 
 #define MAX(a,b) ((a>b) ? a : b)

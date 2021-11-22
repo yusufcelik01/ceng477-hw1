@@ -99,6 +99,7 @@ int main(int argc, char* argv[])
                 parser::Vec3f reflection_point;//this is the point our ray r hits the object
                 parser::Vec3f normal_vector;//normal vector of our surface
                 parser::Vec3f light_ray;//light ray
+                float light_distance = -1;
 
 
                 closest_obj_data.obj_type = none;
@@ -169,11 +170,14 @@ int main(int argc, char* argv[])
 
                         
                         light_ray = vectorSum(point_light.position, vectorScalerMult(-1,reflection_point));
+                        light_distance = VECTOR_LENGTH(light_ray);//distance of light source
 
                         light_ray = normalize(light_ray);// now light ray is normalized
 
                         cosine_theta = dotProduct(light_ray, normal_vector);
                         cosine_theta = MAX(0, cosine_theta); 
+
+                        point_light.intensity = vectorScalerMult(1/(light_distance*light_distance), point_light.intensity );//calculate I/r^2
 
                         L = vectorSum(L, clampColor(vectorScalerMult(cosine_theta, elementViseMultiply(material.diffuse, point_light.intensity))));
 

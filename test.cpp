@@ -39,7 +39,7 @@ int main()
     //std::cout <<"normalized "<< fr.x <<" " <<fr.y <<" " << fr.z  << std::endl;
     //
 
-    //ff = vectorLength(f1);
+    //ff = VECTOR_LENGTH(f1);
     //std::cout << "dotProduct " << ff << std::endl;
 
     printVector(clampColor(f1));

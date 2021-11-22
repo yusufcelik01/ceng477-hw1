@@ -85,7 +85,7 @@ parser::Vec3i crossProduct(parser::Vec3i a, parser::Vec3i b)
 
 parser::Vec3f normalize(const parser::Vec3f& v)// normalizes a vector
 {
-    float length = vectorLength(v);
+    float length = VECTOR_LENGTH(v);
     parser::Vec3f n;
 
     n.x =  v.x/length;
