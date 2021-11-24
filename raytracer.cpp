@@ -361,8 +361,10 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
         return NULL;
     }
     IntersectionData closest_obj_data;
-    parser::Vec3f* pixel_color;
+    parser::Vec3f* pixel_color, *reflection_color;
     parser::Vec3f reflection_point, normal_vector;
+    parser::Ray reflecting_ray;
+
     parser::Vec3f center;
     parser::Material material;
     parser::Ray light_ray;
@@ -398,6 +400,10 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
             normal_vector = normalize(normal_vector);
             
             reflection_point +=  scene.shadow_ray_epsilon * normal_vector; //add offset to reflection point by epsilon
+            reflecting_ray.e = reflection_point;
+            reflecting_ray.d = ray.d - 2* dotProduct(ray.d, normal_vector) *normal_vector;
+            
+
             //TODO possible error point epsilon
 
             for(int i=0; i<numberOfLightSources; i++)
@@ -422,7 +428,8 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
 
                 point_light.intensity = point_light.intensity /(light_distance*light_distance);// I/r^2
 
-                *pixel_color += clampColor(cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity));
+                //*pixel_color += clampColor(cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity));
+                *pixel_color += cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity);
                 //TODO add specular component
 
                 half_vector = normalize(-ray.d) + light_ray.d;
@@ -432,9 +439,20 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
                 cosine_theta = MAX(0, cosine_theta);
                 cosine_theta = pow(cosine_theta, material.phong_exponent);
 
-                *pixel_color += clampColor(cosine_theta * elementViseMultiply(point_light.intensity, material.specular));
+                //*pixel_color += clampColor(cosine_theta * elementViseMultiply(point_light.intensity, material.specular));
+                *pixel_color += cosine_theta * elementViseMultiply(point_light.intensity, material.specular);
             }
             //TODO add reflection light;//recursion time
+            if(material.is_mirror){
+                reflection_color = getRayColor(scene, reflecting_ray, recursion_depth-1, false);
+                if(reflection_color != NULL)
+                {
+                    //*pixel_color += clampColor(elementViseMultiply(material.mirror, *reflection_color));
+                    *pixel_color += elementViseMultiply(material.mirror, *reflection_color);
+                }
+            }
+
+
             
             break;
 
