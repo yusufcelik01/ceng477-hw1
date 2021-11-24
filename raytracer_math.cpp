@@ -174,6 +174,16 @@ parser::Vec3f operator*(const float& a, const parser::Vec3f& b)
     return temp;
 }
 
+parser::Vec3f operator/(const parser::Vec3f& vector, const float& c)
+{
+    parser::Vec3f temp;
+
+    temp.x = vector.x / c;
+    temp.y = vector.y / c;
+    temp.z = vector.z / c;
+
+    return temp;
+}
 std::ostream& operator<<(std::ostream& out, const parser::Vec3f& v)
 {
     out << '(' << v.x <<", " << v.y << ", " << v.z << ')';

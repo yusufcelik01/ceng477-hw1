@@ -9,4 +9,10 @@ test: test.cpp
     
 png:
 	for foo in *.ppm; do convert "$$foo" "$${foo%.ppm}.png"; done
-	
+
+
+render:
+	./raytracer inputs/simple.xml
+	./raytracer inputs/simple_shading.xml
+	./raytracer inputs/simple_reflectance.xml
+

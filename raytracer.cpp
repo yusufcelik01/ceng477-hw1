@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
         temp_vec = cam.near_distance * cam.gaze;
         q += temp_vec;
         */
-        q = cam.position + cam.near_plane.x * u + cam.near_plane.w * v + cam.near_distance * cam.gaze
+        q = cam.position + cam.near_plane.x * u + cam.near_plane.w * v + cam.near_distance * cam.gaze;
         //q has the position of top left corner
 
         i = 0; //pixels' color value
@@ -110,16 +110,16 @@ int main(int argc, char* argv[])
                 closest_obj_data.obj_id = -1;
                 closest_obj_data.face_id = -1;//if it is a mesh we need to find which face it is
 
-                temp_vec = vectorScalerMult(x*pixel_width+p_width, u);
+                temp_vec = (x*pixel_width+p_width)* u;
 
-                s = vectorSum(q, temp_vec);//s = q + s_u.u
+                s = q + temp_vec;//s = q + s_u.u
 
-                temp_vec = vectorScalerMult( -1.0 * (y*pixel_height + p_height), v);// - s_v . v
+                temp_vec =  (y*pixel_height + p_height) * v;// temp_vec =  s_v . v
 
-                s = vectorSum(s, temp_vec);
+                s -= temp_vec;
                 //s = q + s_u.u - s_v.v
 
-                d = vectorSum(s, vectorScalerMult(-1.0, e));//s-e
+                d = s - e;//s-e
 
                 r.e = e;
                 r.d = d;
@@ -386,4 +386,48 @@ parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray,
     res.y = (i*ak_jb + h*jc_al + g*bl_kc)/M; // gama
     res.z = -(f*ak_jb + e*jc_al + d*bl_kc)/M; // t
     return res;
+}
+
+parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth)
+{
+    if(recursion_depth < 0)
+    {
+        return NULL;
+    }
+    IntersectionData closest_obj_data;
+    parser::Vec3f* pixel_color;
+    parser::Material material;
+    //pixel_color= new parser::Vec3f;
+    //pixel_colorx->x = 0;     
+    //pixel_colory->y = 0;
+    //pixel_colorz->z = 0;
+
+    RayIntersecObj(scene, ray, closest_obj_data);
+    int numberOfLightSources = scene.point_lights.size();
+
+    switch (closest_obj_data.obj_type){
+        case none: 
+            return NULL;
+            break;
+
+        case sphere:
+            pixel_color= new parser::Vec3f;
+            pixel_colorx->x = 0;     
+            pixel_colory->y = 0;
+            pixel_colorz->z = 0;
+
+            material = scene.materials[scene.spheres[closest_obj_data.obj_id].material_id - 1];
+            parser::Vec3f center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
+            
+
+            break;
+
+        case triangle:
+            break;
+
+        case mesh:
+            break;
+    }
+
+
 }
