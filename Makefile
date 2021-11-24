@@ -1,4 +1,4 @@
-CFLAGS =  -g -O3# -funroll-loops
+CFLAGS =  -g  -O3# -funroll-loops
 CXXFLAGS = -std=c++17
 
 all:
@@ -10,9 +10,16 @@ test: test.cpp
 png:
 	for foo in *.ppm; do convert "$$foo" "$${foo%.ppm}.png"; done
 
+bash:
+	for foo in inputs/*.xml; do ./bash_test.sh ; echo "input/$$foo"; done
+	
+render_small:
+	-./raytracer inputs/simple.xml
+	-./raytracer inputs/simple_shading.xml
+	-./raytracer inputs/simple_reflectance.xml
+	-./raytracer inputs/mirror_spheres.xml
 
-render:
-	./raytracer inputs/simple.xml
-	./raytracer inputs/simple_shading.xml
-	./raytracer inputs/simple_reflectance.xml
+
+render__all:
+	for foo in inputs/*xml; do ./raytracer "$$foo"; echo "$$foo" ; done
 

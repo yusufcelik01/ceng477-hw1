@@ -33,6 +33,7 @@ parser::Vec3f clampColor(const parser::Vec3f& color);
 parser::Vec3f operator+(const parser::Vec3f& a, const parser::Vec3f& b);
 parser::Vec3f operator+=(parser::Vec3f& a, const parser::Vec3f& b);
 parser::Vec3f operator-(const parser::Vec3f& a, const parser::Vec3f& b);
+parser::Vec3f operator-(parser::Vec3f a);
 parser::Vec3f operator-=(parser::Vec3f& a, const parser::Vec3f& b);
 parser::Vec3f operator*(const float& a, const parser::Vec3f& b);
 parser::Vec3f operator/(const parser::Vec3f& vector, const float& c);

@@ -152,6 +152,13 @@ parser::Vec3f operator-(const parser::Vec3f& a, const parser::Vec3f& b)
 
     return temp;
 }
+parser::Vec3f operator-(parser::Vec3f a)
+{
+    a.x = -a.x; 
+    a.y = -a.y; 
+    a.z = -a.z; 
+    return a;
+}
 
 parser::Vec3f operator-=(parser::Vec3f& a, const parser::Vec3f& b)
 {
@@ -190,3 +197,4 @@ std::ostream& operator<<(std::ostream& out, const parser::Vec3f& v)
 
     return out;
 }
+

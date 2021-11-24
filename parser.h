@@ -19,6 +19,7 @@ namespace parser
         int x, y, z;
     };
 
+
     struct Vec4f
     {
         float x, y, z, w;

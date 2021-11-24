@@ -25,6 +25,7 @@ void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData
 parser::Intersection intersectRaySphere(const parser::Scene &scene, parser::Ray &eye_ray, int sphere_id);
 parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray, const parser::Face &face);
 float Determinant();
+parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth, bool isEyeRay);
 
 int main(int argc, char* argv[])
 {
@@ -95,20 +96,9 @@ int main(int argc, char* argv[])
             for(int x=0; x < cam.image_width; x++){
                 //first compute pixel coordinates;
                 parser::Ray r;
-                //IntersecType i_type = none;//whether it intersects or not
                 parser::Material material;
+                parser::Vec3f* pixel_color;
 
-                IntersectionData closest_obj_data;
-                parser::Vec3f reflection_point;//this is the point our ray r hits the object
-                parser::Vec3f normal_vector;//normal vector of our surface
-                parser::Vec3f light_ray;//light ray
-                float light_distance = -1;
-
-
-                closest_obj_data.obj_type = none;
-                closest_obj_data.t = __FLT_MAX__;
-                closest_obj_data.obj_id = -1;
-                closest_obj_data.face_id = -1;//if it is a mesh we need to find which face it is
 
                 temp_vec = (x*pixel_width+p_width)* u;
 
@@ -127,94 +117,22 @@ int main(int argc, char* argv[])
                 //float intersect.t1, intersect.t2;//different solutions of the equation
 
                 //calculate spheres' closest
+                pixel_color = getRayColor(scene, r, scene.max_recursion_depth, true);
 
-                RayIntersecObj(scene,r,closest_obj_data);
-
-                //find the colour of that material
-                int numberOfLightSources = scene.point_lights.size();
-                parser::Vec3f center;
-                switch (closest_obj_data.obj_type){
-                case none:
-                    parser::Vec3i bg;//backgroung
-                    bg = scene.background_color;
-                    image[i++] = bg.x;
-                    image[i++] = bg.y;
-                    image[i++] = bg.z;
-                    break;
-                case sphere:
-                    material = scene.materials[scene.spheres[closest_obj_data.obj_id].material_id - 1];
-
-                    //TODO
-                    //calculating Lambartian shading (i.e diffuse component)
-                    //find the intersection point  namely S
-                    // r(t) = S
-                    //   n  = (S-C)/|S-C|
-                    //s-c
-
-                    center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
-
-                    reflection_point = vectorSum(r.e, vectorScalerMult(closest_obj_data.t, r.d));//e + dt (S in your notes)
-                    normal_vector = vectorSum(reflection_point, vectorScalerMult(-1, center));// S-E (see your notes)
-
-                    normal_vector = normalize(normal_vector);//n (unit normal of the sphere at that point)
-
-                    //now compute the light sources' normals and diffuse component for each source
-                    
-                    parser::Vec3f L;
-                    L.x=0;
-                    L.y=0;
-                    L.z=0;
-
-                    for(j = 0; j<numberOfLightSources; j++)
-                    {
-
-                        parser::PointLight point_light = scene.point_lights[j];
-                        float cosine_theta = 0;
-
-                        
-                        light_ray = vectorSum(point_light.position, vectorScalerMult(-1,reflection_point));
-                        light_distance = VECTOR_LENGTH(light_ray);//distance of light source
-
-                        light_ray = normalize(light_ray);// now light ray is normalized
-
-                        cosine_theta = dotProduct(light_ray, normal_vector);
-                        cosine_theta = MAX(0, cosine_theta); 
-
-                        point_light.intensity = vectorScalerMult(1/(light_distance*light_distance), point_light.intensity );//calculate I/r^2
-
-                        L = vectorSum(L, clampColor(vectorScalerMult(cosine_theta, elementViseMultiply(material.diffuse, point_light.intensity))));
-
-                    }
-
-                    L = clampColor(vectorSum(L, elementViseMultiply(scene.ambient_light, material.ambient)));//
-                    image[i++] = L.x  ; 
-                    image[i++] = L.y  ; 
-                    image[i++] = L.z  ; 
-                    //image[i++] = scene.ambient_light.x * material.ambient.x;//R
-                    //image[i++] = scene.ambient_light.y * material.ambient.y;//G
-                    //image[i++] = scene.ambient_light.z * material.ambient.z;//B
-
-
-
-                    break;
-                case triangle:
-                    material = scene.materials[scene.triangles[closest_obj_data.obj_id].material_id - 1];
-                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
-                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
-                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
-
-                    break;
-                case mesh:
-                    material = scene.materials[scene.meshes[closest_obj_data.obj_id].material_id - 1];
-                    image[i++] = scene.ambient_light.x * material.ambient.x;//R
-                    image[i++] = scene.ambient_light.y * material.ambient.y;//G
-                    image[i++] = scene.ambient_light.z * material.ambient.z;//B
-
-
-                    break;
-                // default:
-                //     break;
+                if(pixel_color == NULL)//meaning ray didn't hit any objects
+                {
+                    pixel_color = new parser::Vec3f;
+                    pixel_color->x = scene.background_color.x;
+                    pixel_color->y = scene.background_color.y;
+                    pixel_color->z = scene.background_color.z;
                 }
+                *pixel_color = clampColor(*pixel_color);
+                   
+                image[i++] = pixel_color->x;
+                image[i++] = pixel_color->y;
+                image[i++] = pixel_color->z;
+            
+
             }
         }
         //print to ppm
@@ -388,7 +306,55 @@ parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray,
     return res;
 }
 
-parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth)
+bool isShadow(parser::Scene scene, parser::Ray ray, float t=1)//t is the parameter for lights position
+{
+    int numOfSpheres = scene.spheres.size();
+    int numOfTriangles = scene.triangles.size();
+    int numOfMeshes = scene.meshes.size();
+
+
+    for(int i = 0; i < numOfSpheres; i++){
+        parser::Intersection intersect = intersectRaySphere(scene,ray, i);
+
+        if(intersect.discriminant >= 0 ){
+            //meaning they intersect
+            if(intersect.t1 < intersect.t2 && intersect.t1 > 0 && intersect.t1 < t)
+            {
+                return true; 
+            }
+            else if(intersect.t2 > 0 && intersect.t2 < t)
+            {
+                return true;
+            }
+        }
+    }
+    for(int i = 0; i<numOfTriangles;i++){
+        parser::Vec3f b_g_t = intersectRayFace(scene,ray,scene.triangles[i].indices);
+        if(b_g_t.z > 0 && b_g_t.z < t && b_g_t.x >= 0 && b_g_t.y >= 0){
+            if(b_g_t.y <= 1 && b_g_t.x <= (1 - b_g_t.y)){
+                return true;
+            }
+        }
+    }
+    for (size_t j = 0; j < numOfMeshes; j++){
+        parser::Mesh currmesh = scene.meshes[j];
+        int numOfFaces = currmesh.faces.size();
+        for(int i = 0; i<numOfFaces;i++){
+            parser::Vec3f b_g_t = intersectRayFace(scene,ray,currmesh.faces[i]);
+            if(b_g_t.z > 0 && b_g_t.z < t && b_g_t.x >= 0 && b_g_t.y >= 0){
+                if(b_g_t.y <= 1 && b_g_t.x <= (1 - b_g_t.y)){
+                    return true;
+                }
+            }
+        }
+    }
+    //return closest_obj_data.obj_id;
+    return false;
+
+
+}
+
+parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth, bool isEyeRay)
 {
     if(recursion_depth < 0)
     {
@@ -396,30 +362,80 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
     }
     IntersectionData closest_obj_data;
     parser::Vec3f* pixel_color;
+    parser::Vec3f reflection_point, normal_vector;
+    parser::Vec3f center;
     parser::Material material;
-    //pixel_color= new parser::Vec3f;
-    //pixel_colorx->x = 0;     
-    //pixel_colory->y = 0;
-    //pixel_colorz->z = 0;
+    parser::Ray light_ray;
+    parser::Vec3f half_vector;
+
+    float light_distance = 0;
+
+    pixel_color= new parser::Vec3f;
+    pixel_color->x = 0;     
+    pixel_color->y = 0;
+    pixel_color->z = 0;
 
     RayIntersecObj(scene, ray, closest_obj_data);
     int numberOfLightSources = scene.point_lights.size();
 
     switch (closest_obj_data.obj_type){
         case none: 
+            delete pixel_color;
             return NULL;
             break;
 
         case sphere:
-            pixel_color= new parser::Vec3f;
-            pixel_colorx->x = 0;     
-            pixel_colory->y = 0;
-            pixel_colorz->z = 0;
+            pixel_color->x = 0;     
+            pixel_color->y = 0;
+            pixel_color->z = 0;
 
             material = scene.materials[scene.spheres[closest_obj_data.obj_id].material_id - 1];
-            parser::Vec3f center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
-            
+            center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
 
+            reflection_point = ray.e + closest_obj_data.t * ray.d;
+            
+            normal_vector = reflection_point - center;
+            normal_vector = normalize(normal_vector);
+            
+            reflection_point +=  scene.shadow_ray_epsilon * normal_vector; //add offset to reflection point by epsilon
+            //TODO possible error point epsilon
+
+            for(int i=0; i<numberOfLightSources; i++)
+            {
+                parser::PointLight point_light = scene.point_lights[i];
+                float cosine_theta = 0;
+
+                light_ray.e = reflection_point;
+                light_ray.d = point_light.position - reflection_point;
+
+                //check if the point is in shadow
+                //if(false)
+                if(isShadow(scene, light_ray))
+                {
+                    continue;//if in shadow diffuse and specular components are not calculated
+                }
+                light_distance = VECTOR_LENGTH(light_ray.d);
+                light_ray.d = normalize(light_ray.d);//this must be called AFTER isShaow is called
+
+                cosine_theta = dotProduct(light_ray.d, normal_vector);
+                cosine_theta = MAX(0, cosine_theta);//TODO be carefull if the normal is negative
+
+                point_light.intensity = point_light.intensity /(light_distance*light_distance);// I/r^2
+
+                *pixel_color += clampColor(cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity));
+                //TODO add specular component
+
+                half_vector = normalize(-ray.d) + light_ray.d;
+                half_vector = normalize(half_vector);
+
+                cosine_theta = dotProduct(half_vector, normal_vector);
+                cosine_theta = MAX(0, cosine_theta);
+                cosine_theta = pow(cosine_theta, material.phong_exponent);
+
+                *pixel_color += clampColor(cosine_theta * elementViseMultiply(point_light.intensity, material.specular));
+            }
+            //TODO add reflection light;//recursion time
+            
             break;
 
         case triangle:
@@ -428,6 +444,10 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
         case mesh:
             break;
     }
+            if(isEyeRay)
+            {
+                *pixel_color += elementViseMultiply(scene.ambient_light, material.ambient);
+            }
 
-
+            return pixel_color;
 }
