@@ -2,6 +2,7 @@
 #include<cmath>
 
 #include "raytracer_math.h"
+//#include "vector_math.h"
 
 void printVector(parser::Vec3f v)
 {
@@ -14,10 +15,16 @@ int main()
     parser::Vec3i i1,i2 ,ir;
     float ff;
 
-    f1.x = -3255; f1.y = 45; f1.z = 122;
-    f2.x = 255  ; f2.y = 000; f2.z = -3;
+    f1.x = 3; f1.y = 4; f1.z = 5;
+    f2.x = 1  ; f2.y = 2; f2.z = -3;
     i1.x = 1  ; i1.y = 0; i1.z = 0;
     i2.x = 0  ; i2.y = 1; i2.z = 0;
+
+    printVector(f1 + f2);
+
+    f1 -= f2;
+    std::cout << f1 << 5 * f1 <<std::endl;
+    std::cout << f2-f1 << std::endl;
 
     //fr = elementViseMultiply(f1,f2);
     //std::cout << fr.x <<" " <<fr.y <<" " << fr.z  << std::endl;

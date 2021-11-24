@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "raytracer_math.h"
 #include <cmath>
+#include <iostream>
 
 parser::Vec3f vectorScalerMult(float c, parser::Vec3f v)
 {
@@ -117,4 +118,65 @@ parser::Vec3f clampColor(const parser::Vec3f& color)
     res.z = (color.z <0)? 0:
        (color.z > 255) ?255 : color.z ;
     return res;
+}
+
+//operator overloads
+
+parser::Vec3f operator+(const parser::Vec3f& a, const parser::Vec3f& b)
+{
+    parser::Vec3f temp;
+
+    temp.x = a.x + b.x;
+    temp.y = a.y + b.y;
+    temp.z = a.z + b.z;
+
+    return temp;
+}
+
+parser::Vec3f operator+=(parser::Vec3f& a, const parser::Vec3f& b)
+{
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+
+    return a;
+}
+
+parser::Vec3f operator-(const parser::Vec3f& a, const parser::Vec3f& b)
+{
+    parser::Vec3f temp;
+
+    temp.x = a.x - b.x;
+    temp.y = a.y - b.y;
+    temp.z = a.z - b.z;
+
+    return temp;
+}
+
+parser::Vec3f operator-=(parser::Vec3f& a, const parser::Vec3f& b)
+{
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+
+    return a;
+}
+
+
+parser::Vec3f operator*(const float& a, const parser::Vec3f& b)
+{
+    parser::Vec3f temp;
+
+    temp.x = a * b.x;
+    temp.y = a * b.y;
+    temp.z = a * b.z;
+
+    return temp;
+}
+
+std::ostream& operator<<(std::ostream& out, const parser::Vec3f& v)
+{
+    out << '(' << v.x <<", " << v.y << ", " << v.z << ')';
+
+    return out;
 }

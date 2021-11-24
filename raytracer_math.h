@@ -28,4 +28,15 @@ parser::Vec3f elementViseMultiply(const parser::Vec3f& a, const parser::Vec3f& b
 parser::Vec3f normalize(const parser::Vec3f& v);// normalizes a vector
 
 parser::Vec3f clampColor(const parser::Vec3f& color);
+
+//operator overloads
+parser::Vec3f operator+(const parser::Vec3f& a, const parser::Vec3f& b);
+parser::Vec3f operator+=(parser::Vec3f& a, const parser::Vec3f& b);
+parser::Vec3f operator-(const parser::Vec3f& a, const parser::Vec3f& b);
+parser::Vec3f operator-=(parser::Vec3f& a, const parser::Vec3f& b);
+parser::Vec3f operator*(const float& a, const parser::Vec3f& b);
+
+
+std::ostream& operator<<(std::ostream& out, const parser::Vec3f& v);
+
 #endif
