@@ -3,3 +3,4 @@
 *.debug
 test
 raytracer
+template.cpp
