@@ -25,7 +25,8 @@ void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData
 parser::Intersection intersectRaySphere(const parser::Scene &scene, parser::Ray &eye_ray, int sphere_id);
 parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray, const parser::Face &face);
 float Determinant();
-parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth, bool isEyeRay);
+parser::Vec3f* getRayColor(const parser::Scene& scene, const std::vector<std::vector<parser::Vec3f>>& mesh_normals, parser::Ray ray, int recursion_depth, bool isEyeRay);
+parser::Vec3f getNormalOfFace(const parser::Scene& scene, const parser::Face& face);
 
 int main(int argc, char* argv[])
 {
@@ -34,24 +35,48 @@ int main(int argc, char* argv[])
     parser::Scene scene;
     scene.loadFromXml(argv[1]);
 
-    int i,j,k,bar;
+    size_t i,j;
     int width, height;
     int cam_id; 
-    int num_of_cameras;
+    size_t num_of_cameras;
+    size_t num_of_triangles;
+    size_t num_of_meshes;
 
+    std::vector<std::vector<parser::Vec3f>> normals_of_meshes;
     
     parser::Vec3f temp_vec;
-    float temp;
+
+    
+    //precompute normals of all triangles
+    
+    num_of_triangles = scene.triangles.size();
+    num_of_meshes = scene.meshes.size();
+
+    for(i=0; i<num_of_triangles; i++)
+    {   
+        scene.triangles[i].norm = getNormalOfFace(scene, scene.triangles[i].indices); 
+    }
+
+    for(i=0; i<num_of_meshes; i++)
+    {   
+        size_t num_of_faces = scene.meshes[i].faces.size();
+        std::vector<parser::Vec3f> face_normals;
+        normals_of_meshes.push_back(face_normals);
+
+        for(j=0; j<num_of_faces; j++)
+        {
+            normals_of_meshes[i].push_back(getNormalOfFace(scene, scene.meshes[i].faces[j]));
+        }
+    }
 
     num_of_cameras = scene.cameras.size();
-
     for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
     {
         parser::Camera cam;
         parser::Vec3f e;//origin
         parser::Vec3f w,v,u;//coordinate system
 
-        parser::Vec3f ray;
+        //parser::Vec3f ray;
         parser::Vec3f q;// top corner coordinate
         parser::Vec3f s;// pixel coordinate
         parser::Vec3f d;// d in the eq r(t)= e+dt
@@ -96,7 +121,7 @@ int main(int argc, char* argv[])
             for(int x=0; x < cam.image_width; x++){
                 //first compute pixel coordinates;
                 parser::Ray r;
-                parser::Material material;
+                //parser::Material material;
                 parser::Vec3f* pixel_color;
 
 
@@ -117,7 +142,7 @@ int main(int argc, char* argv[])
                 //float intersect.t1, intersect.t2;//different solutions of the equation
 
                 //calculate spheres' closest
-                pixel_color = getRayColor(scene, r, scene.max_recursion_depth, true);
+                pixel_color = getRayColor(scene, normals_of_meshes, r, scene.max_recursion_depth, true);
 
                 if(pixel_color == NULL)//meaning ray didn't hit any objects
                 {
@@ -354,7 +379,7 @@ bool isShadow(parser::Scene scene, parser::Ray ray, float t=1)//t is the paramet
 
 }
 
-parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recursion_depth, bool isEyeRay)
+parser::Vec3f* getRayColor(const parser::Scene& scene, const std::vector<std::vector<parser::Vec3f>>& mesh_normals, parser::Ray ray, int recursion_depth, bool isEyeRay)
 {
     if(recursion_depth < 0)
     {
@@ -379,6 +404,7 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
 
     RayIntersecObj(scene, ray, closest_obj_data);
     int numberOfLightSources = scene.point_lights.size();
+    reflection_point = ray.e + closest_obj_data.t * ray.d;
 
     switch (closest_obj_data.obj_type){
         case none: 
@@ -387,76 +413,88 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
             break;
 
         case sphere:
-            pixel_color->x = 0;     
-            pixel_color->y = 0;
-            pixel_color->z = 0;
 
             material = scene.materials[scene.spheres[closest_obj_data.obj_id].material_id - 1];
             center = scene.vertex_data[scene.spheres[closest_obj_data.obj_id].center_vertex_id -1];
 
-            reflection_point = ray.e + closest_obj_data.t * ray.d;
             
             normal_vector = reflection_point - center;
             normal_vector = normalize(normal_vector);
             
-            reflection_point +=  scene.shadow_ray_epsilon * normal_vector; //add offset to reflection point by epsilon
-            reflecting_ray.e = reflection_point;
-            reflecting_ray.d = ray.d - 2* dotProduct(ray.d, normal_vector) *normal_vector;
             
 
             //TODO possible error point epsilon
-
-            for(int i=0; i<numberOfLightSources; i++)
-            {
-                parser::PointLight point_light = scene.point_lights[i];
-                float cosine_theta = 0;
-
-                light_ray.e = reflection_point;
-                light_ray.d = point_light.position - reflection_point;
-
-                //check if the point is in shadow
-                //if(false)
-                if(isShadow(scene, light_ray))
-                {
-                    continue;//if in shadow diffuse and specular components are not calculated
-                }
-                light_distance = VECTOR_LENGTH(light_ray.d);
-                light_ray.d = normalize(light_ray.d);//this must be called AFTER isShaow is called
-
-                cosine_theta = dotProduct(light_ray.d, normal_vector);
-                cosine_theta = MAX(0, cosine_theta);//TODO be carefull if the normal is negative
-
-                point_light.intensity = point_light.intensity /(light_distance*light_distance);// I/r^2
-
-                //*pixel_color += clampColor(cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity));
-                *pixel_color += cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity);
-                //TODO add specular component
-
-                half_vector = normalize(-ray.d) + light_ray.d;
-                half_vector = normalize(half_vector);
-
-                cosine_theta = dotProduct(half_vector, normal_vector);
-                cosine_theta = MAX(0, cosine_theta);
-                cosine_theta = pow(cosine_theta, material.phong_exponent);
-
-                //*pixel_color += clampColor(cosine_theta * elementViseMultiply(point_light.intensity, material.specular));
-                *pixel_color += cosine_theta * elementViseMultiply(point_light.intensity, material.specular);
-            }
-            //TODO add reflection light;//recursion time
 
 
             
             break;
 
         case triangle:
-            break;
+            material = scene.materials[scene.triangles[closest_obj_data.obj_id].material_id -1];
+            normal_vector = scene.triangles[closest_obj_data.obj_id].norm;
 
+            if(dotProduct(normal_vector, ray.d) > 0)//if the normal vector is inverted
+            {
+                normal_vector = -normal_vector;//invert it back
+            }
+
+
+            break;
         case mesh:
+            material = scene.materials[scene.meshes[closest_obj_data.obj_id].material_id -1];
+            normal_vector = mesh_normals[closest_obj_data.obj_id][closest_obj_data.face_id];
+
+            if(dotProduct(normal_vector, ray.d) > 0)//if the normal vector is inverted
+            {
+                normal_vector = -normal_vector;//invert it back
+            }
+
             break;
     }
 
+    reflection_point +=  scene.shadow_ray_epsilon * normal_vector; //add offset to reflection point by epsilon
+    reflecting_ray.e = reflection_point;
+    reflecting_ray.d = ray.d - 2* dotProduct(ray.d, normal_vector) *normal_vector;
+
+    for(int i=0; i<numberOfLightSources; i++)
+    {
+        parser::PointLight point_light = scene.point_lights[i];
+        float cosine_theta = 0;
+
+        light_ray.e = reflection_point;
+        light_ray.d = point_light.position - reflection_point;
+
+        //check if the point is in shadow
+        //if(false)
+        if(isShadow(scene, light_ray))
+        {
+            continue;//if in shadow diffuse and specular components are not calculated
+        }
+        light_distance = VECTOR_LENGTH(light_ray.d);
+        light_ray.d = normalize(light_ray.d);//this must be called AFTER isShaow is called
+
+        cosine_theta = dotProduct(light_ray.d, normal_vector);
+        cosine_theta = MAX(0, cosine_theta);//TODO be carefull if the normal is negative
+
+        point_light.intensity = point_light.intensity /(light_distance*light_distance);// I/r^2
+
+        //*pixel_color += clampColor(cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity));
+        *pixel_color += cosine_theta * elementViseMultiply(material.diffuse, point_light.intensity);
+        //TODO add specular component
+
+        half_vector = normalize(-ray.d) + light_ray.d;
+        half_vector = normalize(half_vector);
+
+        cosine_theta = dotProduct(half_vector, normal_vector);
+        cosine_theta = MAX(0, cosine_theta);
+        cosine_theta = pow(cosine_theta, material.phong_exponent);
+
+        //*pixel_color += clampColor(cosine_theta * elementViseMultiply(point_light.intensity, material.specular));
+        *pixel_color += cosine_theta * elementViseMultiply(point_light.intensity, material.specular);
+    }
+
     if(material.is_mirror){
-        reflection_color = getRayColor(scene, reflecting_ray, recursion_depth-1, false);
+        reflection_color = getRayColor(scene, mesh_normals, reflecting_ray, recursion_depth-1, false);
         if(reflection_color != NULL)
         {
             //*pixel_color += clampColor(elementViseMultiply(material.mirror, *reflection_color));
@@ -467,4 +505,22 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
     *pixel_color += elementViseMultiply(scene.ambient_light, material.ambient);
 
     return pixel_color;
+}
+parser::Vec3f getNormalOfFace(const parser::Scene& scene, const parser::Face& face)
+{
+    parser::Vec3f A,B,C;//corners of the face
+    parser::Vec3f a,b;  //edges of the triangle
+    parser::Vec3f normal_vector;
+
+    A = scene.vertex_data[face.v0_id-1];
+    B = scene.vertex_data[face.v1_id-1];
+    C = scene.vertex_data[face.v2_id-1];
+
+    a = B - C;
+    b = A - C;
+
+    normal_vector = crossProduct(a, b);
+
+    normal_vector = normalize(normal_vector);
+    return normal_vector;
 }

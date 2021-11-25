@@ -1,0 +1,14 @@
+
+real	0m1,587s
+user	0m1,428s
+sys	0m0,028s
+simple.xml            
+-----------------
+simple_shading.xml    
+-----------------
+simple_reflectance.xml
+-----------------
+mirror_spheres.xml    
+-----------------
+simple.xml            
+-----------------

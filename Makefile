@@ -13,13 +13,20 @@ png:
 bash:
 	for foo in inputs/*.xml; do ./bash_test.sh ; echo "input/$$foo"; done
 	
-render_small:
-	-./raytracer inputs/simple.xml
-	-./raytracer inputs/simple_shading.xml
-	-./raytracer inputs/simple_reflectance.xml
-	-./raytracer inputs/mirror_spheres.xml
+#render_small:
+#	-./raytracer inputs/simple.xml
+#	-./raytracer inputs/simple_shading.xml
+#	-./raytracer inputs/simple_reflectance.xml
+#	-./raytracer inputs/mirror_spheres.xml
+
+#render_small:
+get_time:
+	echo "simple.xml            " >> time.txt ;  (time ./raytracer inputs/simple.xml             ) &>> time.txt; echo "-----------------" >> time.txt;
+#echo "simple_shading.xml    " >> time.txt ;  (time ./raytracer inputs/simple_shading.xml     ) &>> time.txt; echo "-----------------" >> time.txt;
+#echo "simple_reflectance.xml" >> time.txt ;  (time ./raytracer inputs/simple_reflectance.xml ) &>> time.txt; echo "-----------------" >> time.txt;
+#echo "mirror_spheres.xml    " >> time.txt ;  (time ./raytracer inputs/mirror_spheres.xml     ) &>> time.txt; echo "-----------------" >> time.txt;
 
 
 render__all:
-	for foo in inputs/*xml; do ./raytracer "$$foo"; echo "$$foo" ; done
+	for foo in inputs/*xml; echo "$$foo" >> time.txt ; do (time ./raytracer "$$foo") &>> time.txt; echo "-----------------" >> time.txt;   done
 
