@@ -443,14 +443,6 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
                 *pixel_color += cosine_theta * elementViseMultiply(point_light.intensity, material.specular);
             }
             //TODO add reflection light;//recursion time
-            if(material.is_mirror){
-                reflection_color = getRayColor(scene, reflecting_ray, recursion_depth-1, false);
-                if(reflection_color != NULL)
-                {
-                    //*pixel_color += clampColor(elementViseMultiply(material.mirror, *reflection_color));
-                    *pixel_color += elementViseMultiply(material.mirror, *reflection_color);
-                }
-            }
 
 
             
@@ -462,10 +454,17 @@ parser::Vec3f* getRayColor(const parser::Scene& scene, parser::Ray ray, int recu
         case mesh:
             break;
     }
-            if(isEyeRay)
-            {
-                *pixel_color += elementViseMultiply(scene.ambient_light, material.ambient);
-            }
 
-            return pixel_color;
+    if(material.is_mirror){
+        reflection_color = getRayColor(scene, reflecting_ray, recursion_depth-1, false);
+        if(reflection_color != NULL)
+        {
+            //*pixel_color += clampColor(elementViseMultiply(material.mirror, *reflection_color));
+            *pixel_color += elementViseMultiply(material.mirror, *reflection_color);
+        }
+    }
+
+    *pixel_color += elementViseMultiply(scene.ambient_light, material.ambient);
+
+    return pixel_color;
 }

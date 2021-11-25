@@ -69,6 +69,7 @@ namespace parser
     {
         int material_id;
         Face indices;
+        Vec3f norm;
     };
 
     struct Sphere
