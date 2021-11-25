@@ -1,6 +1,7 @@
 *.ppm
 *.png
 *.debug
+*.txt
 test
 raytracer
 template.cpp

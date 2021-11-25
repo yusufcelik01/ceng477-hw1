@@ -12,3 +12,7 @@ mirror_spheres.xml
 -----------------
 simple.xml            
 -----------------
+simple.xml            
+-----------------
+simple.xml            
+-----------------
