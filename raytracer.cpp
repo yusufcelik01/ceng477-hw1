@@ -331,7 +331,7 @@ parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray,
     return res;
 }
 
-bool isShadow(parser::Scene scene, parser::Ray ray, float t=1)//t is the parameter for lights position
+bool isShadow(const parser::Scene& scene, parser::Ray ray, float t=1)//t is the parameter for lights position
 {
     int numOfSpheres = scene.spheres.size();
     int numOfTriangles = scene.triangles.size();

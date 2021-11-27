@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-CFLAGS =  -Wall -g  -O3# -funroll-loops
+CFLAGS =  -Wall -g  #-O3# -funroll-loops
 CXXFLAGS = -std=c++17
 
 
