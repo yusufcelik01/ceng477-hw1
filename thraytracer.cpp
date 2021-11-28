@@ -6,9 +6,11 @@
 #include "raytracer_math.h"
 #include <limits>
 #include <thread>
+#include <unistd.h>
+// #include <types.h>
 
 typedef unsigned char RGB[3];
-static const int Num_Th = 4;
+static const int Num_Th = 5;
 
 enum IntersecType {none, sphere, triangle, mesh};
 
@@ -35,6 +37,7 @@ struct ARGS
     unsigned char* image;
     float pixel_width, pixel_height, p_height, p_width;
     int width, height;
+    int t_heigth;
     const parser::Scene *scene;
     std::vector<std::vector<parser::Vec3f>> *normals_of_meshes;
 } arg;
@@ -42,7 +45,7 @@ struct ARGS
 struct thArg
 {
     int start;
-    int end;
+    unsigned char* image;
 
 } tharg[Num_Th];
 
@@ -91,7 +94,6 @@ int main(int argc, char* argv[])
         arg.cam = scene.cameras[cam_id];
         arg.width = arg.cam.image_width;
         arg.height = arg.cam.image_height;
-        arg.image = new unsigned char [arg.width * arg.height * 3];
         arg.e = arg.cam.position;
         arg.w = vectorScalerMult(-1.0, arg.cam.gaze);
         arg.v = arg.cam.up;
@@ -103,17 +105,13 @@ int main(int argc, char* argv[])
         arg.q = arg.cam.position + arg.cam.near_plane.x * arg.u + arg.cam.near_plane.w * arg.v + arg.cam.near_distance * arg.cam.gaze;
         arg.p_height = arg.pixel_height*0.5;
         arg.p_width = arg.pixel_width*0.5;
-
-        int height = arg.height/Num_Th;
+        arg.image = new unsigned char [arg.width * arg.height * 3];
+        arg.t_heigth = arg.height/(Num_Th);
+        int height = arg.height/(Num_Th);
 
         for(i=0; i<Num_Th;i++){
-            if(i==0)
-                tharg[i].start = 0;
-            else if(i+1==Num_Th)
-                tharg[i].end = i*height;
-            else{
-                tharg[i].start = tharg[i-1].end = i*height;
-            }
+            tharg[i].start = i*height;
+            tharg[i].image = new unsigned char[(height*arg.width*3)];
         }
         // tharg[0].start = 0;
         // tharg[1].start = tharg[0].end = height;
@@ -122,21 +120,35 @@ int main(int argc, char* argv[])
         // tharg[4].start = tharg[3].end = 4*height;
         // tharg[4].end = 5*height;
         
-        std::thread th[Num_Th] = {};
+        std::thread th[Num_Th];
         for (size_t i = 0; i < Num_Th; i++){
             th[i] = std::thread(foo,i);
+            // std::cout <<"gettid " << gettid()<<'\n';
+            // std::cout << getpid()<<'\n';
+        }
+        for (size_t i = 0; i < Num_Th; i++){
             th[i].join();
         }
-        // for (size_t i = 0; i < Num_Th; i++){
-        // }
+        // th[Num_Th-1].join();
         
         //print to ppm
 
         //write to file
+        for(i=0; i<Num_Th;i++){
+            int m = tharg[i].start*arg.width*3;
+            int n = 0;
+            for(j=0;j<height;j++){
+                for(int k=0;k<arg.width;k++){
+                    arg.image[m++]= tharg[i].image[n++];
+                    arg.image[m++]= tharg[i].image[n++];
+                    arg.image[m++]= tharg[i].image[n++];
+                }
+            }
+        }
         write_ppm(scene.cameras[cam_id].image_name.c_str(), arg.image, arg.width, arg.height);
-
     }
     //write_ppm("test.ppm", image, width, height);
+
 }
 // TODO
 // add face id in return along as mesh id
@@ -499,8 +511,9 @@ parser::Vec3f getNormalOfFace(const parser::Scene& scene, const parser::Face& fa
 }
 
 void foo(int thno){
-    int i = tharg[thno].start*tharg[thno].end;
-    for(int y=tharg[thno].start; y < tharg[thno].end; y++){
+    int i = 0;
+    for(int y=0; y < arg.t_heigth; y++){
+        int tmp = tharg[thno].start + y;
         for(int x=0; x < arg.width; x++){
             //first compute pixel coordinates;
             parser::Ray r;
@@ -511,7 +524,7 @@ void foo(int thno){
 
             arg.s = arg.q + temp_vec;//s = q + s_u.u
 
-            temp_vec =  (y*arg.pixel_height + arg.p_height) * arg.v;// temp_vec =  s_v . v
+            temp_vec =  (tmp*arg.pixel_height + arg.p_height) * arg.v;// temp_vec =  s_v . v
 
             arg.s -= temp_vec;
             //s = q + s_u.u - s_v.v
@@ -534,9 +547,9 @@ void foo(int thno){
             }
             *pixel_color = clampColor(*pixel_color);
                 
-            arg.image[i++] = pixel_color->x;
-            arg.image[i++] = pixel_color->y;
-            arg.image[i++] = pixel_color->z;
+            tharg[thno].image[i++] = pixel_color->x;
+            tharg[thno].image[i++] = pixel_color->y;
+            tharg[thno].image[i++] = pixel_color->z;
         }
     }
 }
