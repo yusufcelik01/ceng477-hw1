@@ -5,8 +5,10 @@
 #include <cmath>
 #include "raytracer_math.h"
 #include <limits>
+#include <thread>
 
 typedef unsigned char RGB[3];
+static const int Num_Th = 12;
 
 enum IntersecType {none, sphere, triangle, mesh};
 
@@ -19,8 +21,34 @@ typedef struct
 
 }IntersectionData;
 
+struct ARGS
+{
+    parser::Camera cam;
+    parser::Vec3f e;//origin
+    parser::Vec3f w,v,u;//coordinate system
 
+    //parser::Vec3f ray;
+    parser::Vec3f q;// top corner coordinate
+    parser::Vec3f s;// pixel coordinate
+    parser::Vec3f d;// d in the eq r(t)= e+dt
 
+    unsigned char* image;
+    float pixel_width, pixel_height, p_height, p_width;
+    int width, height;
+    int t_heigth;
+    const parser::Scene *scene;
+    std::vector<std::vector<parser::Vec3f>> *normals_of_meshes;
+} arg;
+
+struct thArg
+{
+    ARGS arg;
+    int start;
+    unsigned char* image;
+
+} tharg[Num_Th];
+
+void foo(int arg);
 void RayIntersecObj(const parser::Scene &scene,parser::Ray ray, IntersectionData &closest_obj_data);
 parser::Intersection intersectRaySphere(const parser::Scene &scene, parser::Ray &eye_ray, int sphere_id);
 parser::Vec3f intersectRayFace(const parser::Scene &scene, parser::Ray &eye_ray, const parser::Face &face);
@@ -36,7 +64,6 @@ int main(int argc, char* argv[])
     scene.loadFromXml(argv[1]);
 
     size_t i,j;
-    int width, height;
     int cam_id; 
     size_t num_of_cameras;
     size_t num_of_triangles;
@@ -44,129 +71,88 @@ int main(int argc, char* argv[])
 
     std::vector<std::vector<parser::Vec3f>> normals_of_meshes;
     
-    parser::Vec3f temp_vec;
-
-    
     //precompute normals of all triangles
     
     num_of_triangles = scene.triangles.size();
     num_of_meshes = scene.meshes.size();
+    num_of_cameras = scene.cameras.size();
 
     for(i=0; i<num_of_triangles; i++)
-    {   
         scene.triangles[i].norm = getNormalOfFace(scene, scene.triangles[i].indices); 
-    }
 
-    for(i=0; i<num_of_meshes; i++)
-    {   
+    for(i=0; i<num_of_meshes; i++){   
         size_t num_of_faces = scene.meshes[i].faces.size();
         std::vector<parser::Vec3f> face_normals;
         normals_of_meshes.push_back(face_normals);
 
         for(j=0; j<num_of_faces; j++)
-        {
             normals_of_meshes[i].push_back(getNormalOfFace(scene, scene.meshes[i].faces[j]));
-        }
     }
 
-    num_of_cameras = scene.cameras.size();
-    for(cam_id = 0; cam_id < num_of_cameras; cam_id++)
-    {
-        parser::Camera cam;
-        parser::Vec3f e;//origin
-        parser::Vec3f w,v,u;//coordinate system
+    for(cam_id = 0; cam_id < num_of_cameras; cam_id++){
+        arg.cam = scene.cameras[cam_id];
+        arg.width = arg.cam.image_width;
+        arg.height = arg.cam.image_height;
+        arg.e = arg.cam.position;
+        arg.w = vectorScalerMult(-1.0, arg.cam.gaze);
+        arg.v = arg.cam.up;
+        arg.u = crossProduct(arg.v, arg.w);
+        arg.pixel_width = (arg.cam.near_plane.y - arg.cam.near_plane.x) / arg.cam.image_width;
+        arg.pixel_height = (arg.cam.near_plane.w - arg.cam.near_plane.z) / arg.cam.image_height;
+        arg.normals_of_meshes = &normals_of_meshes;
+        arg.scene = &scene;
+        arg.q = arg.cam.position + arg.cam.near_plane.x * arg.u + arg.cam.near_plane.w * arg.v + arg.cam.near_distance * arg.cam.gaze;
+        arg.p_height = arg.pixel_height*0.5;
+        arg.p_width = arg.pixel_width*0.5;
+        arg.image = new unsigned char [arg.width * arg.height * 3];
+        arg.t_heigth = arg.height/(Num_Th);
+        int height = arg.height/(Num_Th);
 
-        //parser::Vec3f ray;
-        parser::Vec3f q;// top corner coordinate
-        parser::Vec3f s;// pixel coordinate
-        parser::Vec3f d;// d in the eq r(t)= e+dt
-        float pixel_width, pixel_height, p_height, p_width;
-        
-
-        cam = scene.cameras[cam_id];
-
-        width = cam.image_width;
-        height = cam.image_height;
-
-
-        unsigned char* image = new unsigned char [width * height * 3];
-
-
-        e = cam.position;
-        w = vectorScalerMult(-1.0, cam.gaze);
-        v = cam.up;
-        u = crossProduct(v, w);
-
-        pixel_width = (cam.near_plane.y - cam.near_plane.x) / cam.image_width;
-        pixel_height = (cam.near_plane.w - cam.near_plane.z) / cam.image_height;
-        
-        /*
-        temp_vec = cam.near_plane.x * u;//l.u
-
-        q = cam.position + temp_vec;//e + l.u
-        
-        temp_vec = cam.near_plane.w * v;//t.v
-        q = q + temp_vec; // += t.v
-
-        temp_vec = cam.near_distance * cam.gaze;
-        q += temp_vec;
-        */
-        q = cam.position + cam.near_plane.x * u + cam.near_plane.w * v + cam.near_distance * cam.gaze;
-        //q has the position of top left corner
-
-        i = 0; //pixels' color value
-        p_height = pixel_height*0.5;
-        p_width = pixel_width*0.5;
-        for(int y=0; y < cam.image_height; y++){
-            for(int x=0; x < cam.image_width; x++){
-                //first compute pixel coordinates;
-                parser::Ray r;
-                //parser::Material material;
-                parser::Vec3f* pixel_color;
-
-
-                temp_vec = (x*pixel_width+p_width)* u;
-
-                s = q + temp_vec;//s = q + s_u.u
-
-                temp_vec =  (y*pixel_height + p_height) * v;// temp_vec =  s_v . v
-
-                s -= temp_vec;
-                //s = q + s_u.u - s_v.v
-
-                d = s - e;//s-e
-
-                r.e = e;
-                r.d = d;
-
-                //float intersect.t1, intersect.t2;//different solutions of the equation
-
-                //calculate spheres' closest
-                pixel_color = getRayColor(scene, normals_of_meshes, r, scene.max_recursion_depth, true);
-
-                if(pixel_color == NULL)//meaning ray didn't hit any objects
-                {
-                    pixel_color = new parser::Vec3f;
-                    pixel_color->x = scene.background_color.x;
-                    pixel_color->y = scene.background_color.y;
-                    pixel_color->z = scene.background_color.z;
-                }
-                *pixel_color = clampColor(*pixel_color);
-                   
-                image[i++] = pixel_color->x;
-                image[i++] = pixel_color->y;
-                image[i++] = pixel_color->z;
-            
-
-            }
+        for(i=0; i<Num_Th;i++){
+            tharg[i].arg.cam = scene.cameras[cam_id];
+            tharg[i].arg.width = arg.width;
+            tharg[i].arg.height = arg.height;
+            tharg[i].arg.e = arg.cam.position;
+            tharg[i].arg.w = vectorScalerMult(-1.0, arg.cam.gaze);
+            tharg[i].arg.v = arg.cam.up;
+            tharg[i].arg.u = crossProduct(arg.v, arg.w);
+            tharg[i].arg.pixel_height = arg.pixel_height;
+            tharg[i].arg.pixel_width = arg.pixel_width;
+            tharg[i].arg.normals_of_meshes = &normals_of_meshes;
+            tharg[i].arg.scene = &scene;
+            tharg[i].arg.q = arg.q;
+            tharg[i].arg.p_height = arg.p_height;
+            tharg[i].arg.p_width = arg.p_width;
+            tharg[i].arg.image = new unsigned char [arg.width * arg.height * 3];
+            tharg[i].arg.t_heigth = arg.t_heigth;
+            tharg[i].start = i*height;
+            tharg[i].image = new unsigned char[(height*arg.width*3)];
         }
-        //print to ppm
+        
+        std::thread th[Num_Th];
+        for (size_t i = 0; i < Num_Th; i++)
+            th[i] = std::thread(foo,i);
+        for (size_t i = 0; i < Num_Th; i++){
+            if(th[i].joinable())
+                th[i].join();
+        }
 
         //write to file
-        write_ppm(scene.cameras[cam_id].image_name.c_str(), image, width, height);
-
+        int m = 0;
+        for(i=0; i<Num_Th;i++){
+            int n = 0;
+            for(j=0;j<height;j++){
+                for(int k=0;k<arg.width;k++){
+                    arg.image[m++]= tharg[i].image[n++];
+                    arg.image[m++]= tharg[i].image[n++];
+                    arg.image[m++]= tharg[i].image[n++];
+                }
+            }
+        }
+        write_ppm(scene.cameras[cam_id].image_name.c_str(), arg.image, arg.width, arg.height);
     }
     //write_ppm("test.ppm", image, width, height);
+
 }
 // TODO
 // add face id in return along as mesh id
@@ -526,4 +512,48 @@ parser::Vec3f getNormalOfFace(const parser::Scene& scene, const parser::Face& fa
 
     normal_vector = normalize(normal_vector);
     return normal_vector;
+}
+
+void foo(int thno){
+    int i = 0;
+    for(int y=0; y < tharg[thno].arg.t_heigth; y++){
+        int tmp = tharg[thno].start + y;
+        for(int x=0; x < tharg[thno].arg.width; x++){
+            //first compute pixel coordinates;
+            parser::Ray r;
+            //parser::Material material;
+            parser::Vec3f* pixel_color;
+
+            parser::Vec3f temp_vec = (x*tharg[thno].arg.pixel_width+tharg[thno].arg.p_width)* tharg[thno].arg.u;
+
+            tharg[thno].arg.s = tharg[thno].arg.q + temp_vec;//s = q + s_u.u
+
+            temp_vec =  (tmp*tharg[thno].arg.pixel_height + tharg[thno].arg.p_height) * tharg[thno].arg.v;// temp_vec =  s_v . v
+
+            tharg[thno].arg.s -= temp_vec;
+            //s = q + s_u.u - s_v.v
+
+            tharg[thno].arg.d = tharg[thno].arg.s - tharg[thno].arg.e;//s-e
+
+            r.e = tharg[thno].arg.e;
+            r.d = tharg[thno].arg.d;
+
+            //float intersect.t1, intersect.t2;//different solutions of the equation
+
+            pixel_color = getRayColor(*(tharg[thno].arg.scene), *(tharg[thno].arg.normals_of_meshes), r, tharg[thno].arg.scene->max_recursion_depth, true);
+
+            if(pixel_color == NULL)//meaning ray didn't hit any objects
+            {
+                pixel_color = new parser::Vec3f;
+                pixel_color->x = tharg[thno].arg.scene->background_color.x;
+                pixel_color->y = tharg[thno].arg.scene->background_color.y;
+                pixel_color->z = tharg[thno].arg.scene->background_color.z;
+            }
+            *pixel_color = clampColor(*pixel_color);
+                
+            tharg[thno].image[i++] = pixel_color->x;
+            tharg[thno].image[i++] = pixel_color->y;
+            tharg[thno].image[i++] = pixel_color->z;
+        }
+    }
 }

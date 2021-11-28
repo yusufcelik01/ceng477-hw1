@@ -6,8 +6,8 @@ CXXFLAGS = -std=c++17
 all:
 	g++ $(CFLAGS) $(CXXFLAGS) parser.cpp ppm.cpp raytracer.cpp raytracer_math.cpp tinyxml2.cpp -o raytracer 
 
-thall:
-	g++ $(CFLAGS) $(CXXFLAGS) parser.cpp ppm.cpp thraytracer.cpp raytracer_math.cpp tinyxml2.cpp -o raytracer 
+notthall:
+	g++ $(CFLAGS) $(CXXFLAGS) parser.cpp ppm.cpp notth_raytracer.cpp raytracer_math.cpp tinyxml2.cpp -o raytracer 
 
 test: test.cpp
 	g++ -O3 raytracer_math.cpp test.cpp -o test -std=c++17 -g
