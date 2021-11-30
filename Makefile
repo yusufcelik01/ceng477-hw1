@@ -27,4 +27,4 @@ render_small:
 
 
 render__all:
-	for foo in inputs/*xml; do bar="time_$${foo#inputs/}"; (time ./raytracer "$$foo") 2> "$${bar%.xml}.txt" &  done
+	for foo in inputs/*xml; do bar="time_$${foo#inputs/}"; (time ./raytracer "$$foo") 2> "$${bar%.xml}.txt" ;  done
