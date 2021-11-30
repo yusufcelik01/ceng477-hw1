@@ -8,7 +8,7 @@
 #include <thread>
 
 typedef unsigned char RGB[3];
-static const int Num_Th = 12;
+static const int Num_Th = 8;
 
 enum IntersecType {none, sphere, triangle, mesh};
 
