@@ -2,6 +2,7 @@
 *.png
 *.debug
 *.txt
+*.o
 test
 raytracer
 template.cpp
