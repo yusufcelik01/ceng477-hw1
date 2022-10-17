@@ -1,3 +1,5 @@
+outputs/**
+
 *.ppm
 *.png
 *.debug
