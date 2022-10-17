@@ -1,5 +1,5 @@
 # raytracer
-First homework of [ceng477](https://saksagan.ceng.metu.edu.tr/courses/ceng477/index.html). The simplest implementation of the classic raytracing algorithm.
+First homework of [ceng477](https://saksagan.ceng.metu.edu.tr/courses/ceng477/index.html). The simplest implementation of the classic raytracing algorithm from scratch. 
 
 ## Example outputs
 ![Mirror spheres](https://github.com/yusufcelik01/ceng477-hw1/blob/main/mirror_spheres.png)
